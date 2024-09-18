@@ -28,20 +28,20 @@ std::random_device rd;  // Will be used to obtain a seed for the random number e
 std::mt19937 gen(rd()); // Standard mersenne_twister_engine seeded with rd().
 
 
+double kenny (double & x, double & y);
+
+grid3 gradient_descent (coordinates q_1st, coordinates q_2nd, double f(double & x, double & y));
+
 grid1 mesh (double left_border, const double & right_border, const double & mesh_step);
 
 grid3 function_nodes (grid1 & x_grid, grid1 & y_grid, double f(double & x, double & y));
 
-double kenny (double & x, double & y);
-
 template<typename... Tp>
 void file_creation (const std::string & file_name, std::vector<Tp...> & data);
 
-void plot (const std::string & name, const std::string & title);
+void surface_plot (const std::string & name, const std::string & title);
 
-grid3 gradient_descent (coordinates q_1st, coordinates q_2nd, double f(double & x, double & y));
-
-
+void trajectory_plot (const std::string & surface, const std::string & trajectory);
 
 
 int main() {
@@ -49,12 +49,13 @@ int main() {
     grid1 y_grid = std::move(mesh(y_min, y_max, step));
     grid3 McCormick = std::move(function_nodes(x_grid, y_grid, kenny));
     file_creation ("function", McCormick);
+//    surface_plot("function", "McCormick function");
     std::uniform_int_distribution<> dis_node (1, McCormick.size()-2);
     int i = dis_node(gen);
     int j = dis_node(gen);
-    grid3 traj = gradient_descent(McCormick[i], McCormick[j], kenny);
-    file_creation ("trajectory", traj);
-    //plot("kenny_test", "McCormick function");
+    grid3 trajectory = gradient_descent(McCormick[i], McCormick[j], kenny);
+    file_creation ("Ttrajectory", trajectory);
+    trajectory_plot ("function", "Trajectory");
     return 0;
 }
 
@@ -161,7 +162,7 @@ void file_creation (const std::string & file_name, std::vector<Tp...> & data) {
 }
 
 
-void plot (const std::string & name, const std::string & title) {
+void surface_plot (const std::string & name, const std::string & title) {
     FILE *gp = popen("gnuplot -persist", "w");
     if (!gp) throw std::runtime_error("Error opening pipe to GNUplot.");
     std::vector<std::string> stuff = {"set term jpeg size 1920, 1080 font \"Helvetica,30\"",
@@ -181,6 +182,32 @@ void plot (const std::string & name, const std::string & title) {
                                       "set terminal pop",
                                       "set output",
                                       "replot", "q"};
+    for (const auto & it : stuff)
+        fprintf(gp, "%s\n", it.c_str());
+    pclose(gp);
+}
+
+
+void trajectory_plot (const std::string & surface, const std::string & trajectory) {
+    FILE *gp = popen("gnuplot -persist", "w");
+    if (!gp) throw std::runtime_error("Error opening pipe to GNUplot.");
+    std::vector<std::string> stuff = {"set term jpeg size 1920, 1080 font \"Helvetica,30\"",
+                                      "set output \'" + trajectory + ".jpg\'",
+                                      "set title \'" + trajectory + R"(' font 'Helvetica,20')",
+                                      "set pm3d map",
+                                      "set size square",
+                                      "set ticslevel 0",
+                                      "set key off",
+                                      "set autoscale xfix",
+                                      "x1=y1=NaN",
+                                      "plot \'" + surface + R"(.txt' u 1:2:3 w p lw 6 palette t '', ')" + trajectory +
+                                      R"(.txt' u (x0=x1,x1=$1,x0):(y0=y1,y1=$2,y0):(x1-x0):(y1-y0) w vectors lt rgb 'white' head filled notitle )",
+                                      "set tics font \'Helvetica,14\'",
+                                      R"(set xlabel 'x' font 'Helvetica,20')",
+                                      R"(set ylabel 'y' font 'Helvetica,20')",
+                                      "set terminal pop",
+                                      "set output",
+                                       "replot", "q"};
     for (const auto & it : stuff)
         fprintf(gp, "%s\n", it.c_str());
     pclose(gp);
