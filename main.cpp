@@ -54,7 +54,7 @@ int main() {
     int i = dis_node(gen);
     int j = dis_node(gen);
     grid3 trajectory = gradient_descent(McCormick[i], McCormick[j], kenny);
-    file_creation ("Ttrajectory", trajectory);
+    file_creation ("Trajectory", trajectory);
     trajectory_plot ("function", "Trajectory");
     return 0;
 }
